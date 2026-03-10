@@ -15,9 +15,9 @@ FROM debian:${DEBIAN_VERSION}               AS base
 
 COPY --from=qemu   /bin/                         /usr/local/bin
 COPY --from=qemu   /share/qemu/                  /share/qemu
-COPY --from=qemu   /lib/x86_64-linux-gnu/        /lib/x86_64-linux-gnu
+COPY --from=qemu   /lib/                          /lib/
 COPY --from=myself /kraft                        /usr/local/bin
-COPY --from=xen    /usr/lib/x86_64-linux-gnu/*.a /lib/x86_64-linux-gnu
+COPY --from=xen    /usr/lib/*-linux-gnu/*.a      /usr/lib/
 COPY --from=xen    /usr/local/lib/libxen*.a      /usr/local/lib/libxen*.so* /usr/local/lib/
 COPY --from=xen    /usr/local/include/*          /usr/local/include
 
@@ -37,6 +37,7 @@ RUN set -xe; \
       gcc-12 \
       gcc-12-aarch64-linux-gnu \
       gcc-12-arm-linux-gnueabihf \
+      gcc-12-riscv64-linux-gnu \
       git \
       libarchive-tools \
       libbtrfs-dev \
@@ -85,7 +86,16 @@ RUN ln -s /usr/bin/cpp-12                                   /usr/bin/cc; \
     ln -s /usr/bin/gcc-12-arm-linux-gnueabihf-gcov-12       /usr/bin/gcc-12-arm-linux-gnueabihf-gcov; \
     ln -s /usr/bin/gcc-12-arm-linux-gnueabihf-gcov-dump-12  /usr/bin/gcc-12-arm-linux-gnueabihf-gcov-dump; \
     ln -s /usr/bin/gcc-12-arm-linux-gnueabihf-gcov-tool-12  /usr/bin/gcc-12-arm-linux-gnueabihf-gcov-tool; \
-    ln -s /usr/bin/gcc-12-arm-linux-gnueabihf-lto-tool-12   /usr/bin/gcc-12-arm-linux-gnueabihf-lto-tool;
+    ln -s /usr/bin/gcc-12-arm-linux-gnueabihf-lto-tool-12   /usr/bin/gcc-12-arm-linux-gnueabihf-lto-tool; \
+    ln -s /usr/bin/riscv64-linux-gnu-cpp-12                 /usr/bin/riscv64-linux-gnu-cpp; \
+    ln -s /usr/bin/riscv64-linux-gnu-gcc-12                 /usr/bin/riscv64-linux-gnu-gcc; \
+    ln -s /usr/bin/riscv64-linux-gnu-gcc-ar-12              /usr/bin/riscv64-linux-gnu-gcc-ar; \
+    ln -s /usr/bin/riscv64-linux-gnu-gcc-nm-12              /usr/bin/riscv64-linux-gnu-gcc-nm; \
+    ln -s /usr/bin/riscv64-linux-gnu-gcc-ranlib-12          /usr/bin/riscv64-linux-gnu-gcc-ranlib; \
+    ln -s /usr/bin/riscv64-linux-gnu-gcov-12                /usr/bin/riscv64-linux-gnu-gcov; \
+    ln -s /usr/bin/riscv64-linux-gnu-gcov-dump-12           /usr/bin/riscv64-linux-gnu-gcov-dump; \
+    ln -s /usr/bin/riscv64-linux-gnu-gcov-tool-12           /usr/bin/riscv64-linux-gnu-gcov-tool; \
+    ln -s /usr/bin/riscv64-linux-gnu-lto-tool-12            /usr/bin/riscv64-linux-gnu-lto-tool;
 
 WORKDIR /workspace
 

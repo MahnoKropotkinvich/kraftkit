@@ -14,6 +14,13 @@ ARG WITH_KVM=enable
 ARG WITH_x86_64=enable
 ARG WITH_aarch64=enable
 ARG WITH_arm=enable
+ARG WITH_riscv64=enable
+ARG WITH_riscv32=enable
+
+ARG http_proxy
+ARG https_proxy
+ENV http_proxy=${http_proxy}
+ENV https_proxy=${https_proxy}
 
 ARG MAKE_NPROC=1
 
@@ -21,6 +28,10 @@ WORKDIR /out
 
 # Install dependencies
 RUN set -ex; \
+    if [ -n "${http_proxy}" ]; then \
+        echo "Acquire::http::Proxy \"${http_proxy}\";" > /etc/apt/apt.conf.d/99proxy; \
+        echo "Acquire::https::Proxy \"${http_proxy}\";" >> /etc/apt/apt.conf.d/99proxy; \
+    fi; \
     apt-get -y update; \
     apt-get install -y \
         bison \
@@ -67,11 +78,18 @@ RUN set -ex; \
     if [ "${WITH_arm}" = "enable" ]; then \
         tlist="${tlist},arm-softmmu"; \
     fi; \
+    if [ "${WITH_riscv64}" = "enable" ]; then \
+        tlist="${tlist},riscv64-softmmu"; \
+    fi; \
+    if [ "${WITH_riscv32}" = "enable" ]; then \
+        tlist="${tlist},riscv32-softmmu"; \
+    fi; \
     ./configure \
         --target-list=$(echo ${tlist} | tail -c +2) \
         --prefix=/ \
         --audio-drv-list="" \
         --enable-attr \
+        --enable-fdt=internal \
         --disable-auth-pam \
         --disable-alsa \
         --disable-bochs \
@@ -199,7 +217,19 @@ RUN set -ex; \
         --enable-virtfs \
         ; \
         make -j${MAKE_NPROC}; \
-        make install;
+        make install; \
+    ARCH_TRIPLET=$(dpkg-architecture -q DEB_HOST_MULTIARCH); \
+    mkdir -p /out/libs/${ARCH_TRIPLET}; \
+    cp /lib/${ARCH_TRIPLET}/libglib-2.0.so.0 \
+       /lib/${ARCH_TRIPLET}/libm.so.6 \
+       /lib/${ARCH_TRIPLET}/libz.so.1 \
+       /lib/${ARCH_TRIPLET}/libc.so.6 \
+       /lib/${ARCH_TRIPLET}/libpcre2-8.so.0 \
+       /lib/${ARCH_TRIPLET}/libcap-ng.so.0 \
+       /lib/${ARCH_TRIPLET}/liblzo2.so.2 \
+       /lib/${ARCH_TRIPLET}/libslirp.so.0 \
+       /lib/${ARCH_TRIPLET}/libgmodule-2.0.so.0 \
+       /out/libs/${ARCH_TRIPLET}/
 
 FROM scratch AS qemu
 COPY --from=qemu-build /bin/qemu-img \
@@ -209,19 +239,10 @@ COPY --from=qemu-build /bin/qemu-img \
                        /bin/qemu-pr-helper \
                        /bin/qemu-system-aarch64 \
                        /bin/qemu-system-arm \
+                       /bin/qemu-system-riscv64 \
+                       /bin/qemu-system-riscv32 \
                        /bin/qemu-system-x86_64 \
                        /bin/
 
 COPY --from=qemu-build /share/qemu/ /share/qemu/
-COPY --from=qemu-build /lib/x86_64-linux-gnu/ /lib/x86_64-linux-gnu/
-
-COPY --from=qemu-build /lib/x86_64-linux-gnu/libglib-2.0.so.0 \
-                    /lib/x86_64-linux-gnu/libm.so.6 \
-                    /lib/x86_64-linux-gnu/libz.so.1 \
-                    /lib/x86_64-linux-gnu/libc.so.6 \
-                    /lib/x86_64-linux-gnu/libpcre2-8.so.0 \
-                    /lib/x86_64-linux-gnu/libcap-ng.so.0 \
-                    /lib/x86_64-linux-gnu/liblzo2.so.2 \
-                    /lib/x86_64-linux-gnu/libslirp.so.0 \
-                    /lib/x86_64-linux-gnu/libgmodule-2.0.so.0 \
-                    /lib/x86_64-linux-gnu/
+COPY --from=qemu-build /out/libs/ /lib/
